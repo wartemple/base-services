@@ -1,0 +1,70 @@
+version: '1.0'
+
+services:
+  mysql:
+    image: mysql
+    container_name: mysql
+    expose:
+        - "3306"
+    ports:
+        - "3306:3306"
+    volumes:
+        - ./mysql/conf/my.cnf:/etc/mysql/my.cnf
+        - ./mysql/init:/docker-entrypoint-initdb.d/
+    environment:
+        - MYSQL_ROOT_PASSWORD=123456
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    restart: always
+
+  minio:
+    image: quay.io/minio/minio
+    container_name: minio
+    command: server --console-address ":9001" ./minio/data
+    expose:
+      - "9000"
+      - "9001"
+    ports:
+      - 9000:9000
+      - 9001:9001
+    environment:
+      MINIO_ROOT_USER: root
+      MINIO_ROOT_PASSWORD: 12345678
+
+  redis:
+    image: docker.io/library/redis:latest
+    container_name: redis
+    restart: always
+    ports:
+      - '6379:6379'
+    command: redis-server --save 20 1 --loglevel warning
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=myuser
+      - RABBITMQ_DEFAULT_PASS=mypassword
+    ports:
+        - 5672:5672
+        - 15672:15672
+    volumes:
+        - ./rabbitmq/data:/bitnami/rabbitmq/mnesia
+
+
+
+  # nginx:
+  #   build: ./compose/nginx
+  #   ports:
+  #       - "80:80"
+  #       - "443:443"
+  #   expose:
+  #       - "80"
+  #   volumes:
+  #       - ../front/web/dist:/usr/share/nginx/web # 前端
+  #       - ./compose/nginx/ssl:/usr/share/nginx/ssl
+  #       - ./compose/nginx/log:/var/log/nginx
+  #   links:
+  #       - web
+  #   depends_on:
+  #       - web
+  #   restart: always
