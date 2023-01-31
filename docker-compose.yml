@@ -3,18 +3,24 @@ version: '1.0'
 services:
   mysql:
     image: mysql
-    container_name: mysql
+    container_name: mysql-container
     expose:
         - "3306"
     ports:
         - "3306:3306"
     volumes:
+        - ./mysql/datas:/var/lib/mysql
         - ./mysql/conf/my.cnf:/etc/mysql/my.cnf
         - ./mysql/init:/docker-entrypoint-initdb.d/
     environment:
-        - MYSQL_ROOT_PASSWORD=123456
+        - MYSQL_DATABASE=EDU # TODO: 修改
+        - MYSQL_ROOT_PASSWORD=123456 # TODO: 修改
+        - MYSQL_USER=root # TODO: 修改
+        - MYSQL_PASSWORD=123456 # TODO: 修改
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     restart: always
+    networks:
+      - services
 
   minio:
     image: quay.io/minio/minio
@@ -29,6 +35,8 @@ services:
     environment:
       MINIO_ROOT_USER: root
       MINIO_ROOT_PASSWORD: 12345678
+    networks:
+      - services
 
   redis:
     image: docker.io/library/redis:latest
@@ -37,6 +45,8 @@ services:
     ports:
       - '6379:6379'
     command: redis-server --save 20 1 --loglevel warning
+    networks:
+      - services
 
   rabbitmq:
     image: rabbitmq:3-management
@@ -49,22 +59,52 @@ services:
         - 15672:15672
     volumes:
         - ./rabbitmq/data:/bitnami/rabbitmq/mnesia
+    networks:
+      - services
+
+  elasticsearch:
+    container_name: es-container
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.11.0
+    environment:
+      - xpack.security.enabled=false
+      - "discovery.type=single-node"
+    ports:
+      - 9200:9200
+    networks:
+      - services
+
+  kibana:
+    container_name: kb-container
+    image: docker.elastic.co/kibana/kibana:7.11.0
+    environment:
+      - ELASTICSEARCH_HOSTS=http://es-container:9200
+    depends_on:
+      - elasticsearch
+    ports:
+      - 5601:5601
+    networks:
+      - services
+
+  nginx:
+    build: ./nginx
+    ports:
+        - "80:80"
+        - "443:443"
+    expose:
+        - "80"
+    volumes:
+        # - ../front/web/dist:/usr/share/nginx/web # 前端
+        - ./nginx/ssl:/usr/share/nginx/ssl
+        - ./nginx/log:/var/log/nginx
+    links:
+        - web
+    depends_on:
+        - web
+    restart: always
+    networks:
+      - services
 
 
-
-  # nginx:
-  #   build: ./compose/nginx
-  #   ports:
-  #       - "80:80"
-  #       - "443:443"
-  #   expose:
-  #       - "80"
-  #   volumes:
-  #       - ../front/web/dist:/usr/share/nginx/web # 前端
-  #       - ./compose/nginx/ssl:/usr/share/nginx/ssl
-  #       - ./compose/nginx/log:/var/log/nginx
-  #   links:
-  #       - web
-  #   depends_on:
-  #       - web
-  #   restart: always
+networks:
+  services: # TODO: 修改
+    driver: bridge
