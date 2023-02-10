@@ -1,22 +1,19 @@
-version: '1.0'
+version: '3.4'
 
 services:
   mysql:
     image: mysql
-    container_name: mysql-container
+    container_name: ${PROJECT_NAME}-mysql
     expose:
         - "3306"
     ports:
-        - "3306:3306"
+        - "${MYSQL_PORT}:3306"
     volumes:
         - ./mysql/datas:/var/lib/mysql
         - ./mysql/conf/my.cnf:/etc/mysql/my.cnf
         - ./mysql/init:/docker-entrypoint-initdb.d/
     environment:
-        - MYSQL_DATABASE=EDU # TODO: 修改
-        - MYSQL_ROOT_PASSWORD=123456 # TODO: 修改
-        - MYSQL_USER=admin # TODO: 修改
-        - MYSQL_PASSWORD=123456 # TODO: 修改
+        - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     restart: always
     networks:
@@ -24,85 +21,60 @@ services:
 
   minio:
     image: quay.io/minio/minio
-    container_name: minio
+    container_name: ${PROJECT_NAME}-minio
     command: server --console-address ":9001" ./minio/data
     expose:
       - "9000"
       - "9001"
     ports:
-      - 9000:9000
-      - 9001:9001
+      - ${MINIO_SERVER_PORT}:9000
+      - ${MINIO_WEB_PORT}:9001
     environment:
-      MINIO_ROOT_USER: root
-      MINIO_ROOT_PASSWORD: 12345678
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     networks:
       - services
 
   redis:
     image: docker.io/library/redis:latest
-    container_name: redis
+    container_name: ${PROJECT_NAME}-redis
     restart: always
     ports:
-      - '6379:6379'
-    command: redis-server --save 20 1 --loglevel warning
+      - '${REDIS_PORT}:6379'
+    volumes:
+      - ./redis/data:/data
+      - ./redis/conf/redis.conf:/etc/redis/redis.conf
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
     networks:
       - services
 
   rabbitmq:
     image: rabbitmq:3-management
-    container_name: rabbitmq
+    container_name: ${PROJECT_NAME}-rabbitmq
     environment:
-      - RABBITMQ_DEFAULT_USER=myuser
-      - RABBITMQ_DEFAULT_PASS=mypassword
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD}
     ports:
-        - 5672:5672
-        - 15672:15672
+        - ${RABBITMQ_SERVER_PORT}:5672
+        - ${RABBITMQ_WEB_PORT}:15672
     volumes:
         - ./rabbitmq/data:/bitnami/rabbitmq/mnesia
     networks:
       - services
 
-  # elasticsearch:
-  #   container_name: es-container
-  #   image: docker.elastic.co/elasticsearch/elasticsearch:7.11.0
-  #   environment:
-  #     - xpack.security.enabled=false
-  #     - "discovery.type=single-node"
-  #   ports:
-  #     - 9200:9200
-  #   networks:
-  #     - services
-
-  # kibana:
-  #   container_name: kb-container
-  #   image: docker.elastic.co/kibana/kibana:7.11.0
-  #   environment:
-  #     - ELASTICSEARCH_HOSTS=http://es-container:9200
-  #   depends_on:
-  #     - elasticsearch
-  #   ports:
-  #     - 5601:5601
-  #   networks:
-  #     - services
-
-  # nginx:
-  #   build: ./nginx
-  #   ports:
-  #       - "80:80"
-  #       - "443:443"
-  #   expose:
-  #       - "80"
-  #   volumes:
-  #       # - ../front/web/dist:/usr/share/nginx/web # 前端
-  #       - ./nginx/ssl:/usr/share/nginx/ssl
-  #       - ./nginx/log:/var/log/nginx
-  #   links:
-  #       - web
-  #   depends_on:
-  #       - web
-  #   restart: always
-  #   networks:
-  #     - services
+  elasticsearch:
+    container_name: ${PROJECT_NAME}-elasticsearch
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.3.2
+    restart: always
+    environment:
+      - xpack.security.enabled=false
+      - discovery.type=single-node
+    ports:
+      - ${ELASTICSEARCH_PORT}:9200
+    networks:
+      - services
 
 
 networks:
