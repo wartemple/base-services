@@ -9,9 +9,9 @@ services:
     ports:
         - "${MYSQL_PORT}:3306"
     volumes:
-        - ./mysql/datas:/var/lib/mysql
-        - ./mysql/conf/my.cnf:/etc/mysql/my.cnf
-        - ./mysql/init:/docker-entrypoint-initdb.d/
+        - ./compose/mysql/data:/var/lib/mysql
+        - ./compose/mysql/conf/my.cnf:/etc/mysql/my.cnf
+        - ./compose/mysql/init:/docker-entrypoint-initdb.d/
     environment:
         - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
@@ -22,7 +22,7 @@ services:
   minio:
     image: quay.io/minio/minio
     container_name: ${PROJECT_NAME}-minio
-    command: server --console-address ":9001" ./minio/data
+    command: server --console-address ":9001" ./compose/minio/data
     expose:
       - "9000"
       - "9001"
@@ -42,8 +42,8 @@ services:
     ports:
       - '${REDIS_PORT}:6379'
     volumes:
-      - ./redis/data:/data
-      - ./redis/conf/redis.conf:/etc/redis/redis.conf
+      - ./compose/redis/data:/data
+      - ./compose/redis/conf/redis.conf:/etc/redis/redis.conf
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
@@ -60,7 +60,7 @@ services:
         - ${RABBITMQ_SERVER_PORT}:5672
         - ${RABBITMQ_WEB_PORT}:15672
     volumes:
-        - ./rabbitmq/data:/bitnami/rabbitmq/mnesia
+        - ./compose/rabbitmq/data:/bitnami/rabbitmq/mnesia
     networks:
       - services
 
@@ -71,6 +71,9 @@ services:
     environment:
       - xpack.security.enabled=false
       - discovery.type=single-node
+    volumes:
+      - ./compose/elasticsearch/data:/usr/share/elasticsearch/data
+      - ./compose/elasticsearch/logs:/usr/share/elasticsearch/logs
     ports:
       - ${ELASTICSEARCH_PORT}:9200
     networks:
