@@ -22,13 +22,15 @@ services:
   minio:
     image: quay.io/minio/minio
     container_name: ${PROJECT_NAME}-minio
-    command: server --console-address ":9001" ./compose/minio/data
+    command: server --console-address ":9001" /data
     expose:
       - "9000"
       - "9001"
     ports:
       - ${MINIO_SERVER_PORT}:9000
       - ${MINIO_WEB_PORT}:9001
+    volumes:
+      - ./compose/minio/data:/data
     environment:
       - MINIO_ROOT_USER=${MINIO_ROOT_USER}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
