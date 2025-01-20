@@ -1,0 +1,38 @@
+version: '3.7'
+services:
+  redis-master:
+    image: redis:latest
+    container_name: redis-master
+    ports:
+      - "6379:6379"
+    expose:
+      - "6379"
+    command: redis-server --appendonly yes
+    networks:
+      - default
+
+  redis-slave:
+    image: redis:latest
+    container_name: redis-slave
+    command: redis-server --slaveof redis-master 6379 --appendonly yes
+
+  
+  redis-slave2:
+    image: redis:latest
+    container_name: redis-slave2
+    command: redis-server --slaveof redis-master 6379 --appendonly yes
+
+
+  redis-sentinel1:
+    image: redis:latest
+    container_name: redis-sentinel1
+    depends_on:
+      - redis-master
+      - redis-slave
+      - redis-slave2
+    volumes:
+        - ./sentinel.conf:/etc/redis/sentinel.conf/sentinel.conf
+    ports:
+      - "26379:26379"
+    command: redis-sentinel /etc/redis/sentinel.conf/sentinel.conf
+
